@@ -1,0 +1,1451 @@
+//CODE
+//MAIN
+//Choose Method
+START,	LDA	Note2					//Str_Out("AdvancedCalculator0.1.3Ver ©DorMalka")
+	BSA	Str_Out
+	LDA	Note1
+	BSA	Str_Out					//Str_Out("Enter input method[b\h\d]:")
+	CLA
+Char_in1,	SKI
+	BUN	Char_in1
+	INP
+	STA	CHAR2					//CHAR2=AC
+	OUT						//OUT->CHAR2
+	LDA	CHAR2
+	ADD	h
+IF,	SZA						//if(CHAR2=h)
+	BUN	IF1
+THEN,	LDA	h_start
+	STA	v_start					//v_start=h_start
+	LDA	hex
+	STA	cur_base					//cur_base=hex
+	LDA	NewLine
+	OUT						//OUT->NewLine
+	BUN	Input
+IF1,	LDA	CHAR2
+	ADD	d
+	SZA						//if (CHAR2=d)
+	BUN	IF2
+THEN1,	LDA	d_start
+	STA	v_start					//v_start=d_start
+	LDA	ten
+	STA	cur_base					//cur_base=ten
+	LDA	NewLine
+	OUT						//OUT->NewLine
+	BUN	Input
+IF2,	LDA	CHAR2
+	ADD	b
+	SZA						//if(CHAR2=b)
+	BUN	IF3
+THEN2,	LDA	b_start
+	STA	v_start					//v_start=b_start
+	LDA	two
+	STA	cur_base					//cur_base=two
+	LDA	NewLine
+	OUT						//OUT->NewLine
+	BUN	Input
+IF3,	LDA	Err1
+	BSA	Str_Out					//Str_out("Wrong Input")
+	LDA	NewLine
+	OUT						//OUT->NewLine
+	BUN	START
+
+//Input Rutine
+Input,	LDA	v_start
+	STA	v_ptr					//v_ptr=v_start
+	LDA	f_start
+	STA	f_ptr					//f_ptr=f_start
+Form_in,	CLA						//DO
+Char_in,	SKI 						//repeat
+	BUN 	 Char_in					//until (FGI == 1) i.e. i/p available at device
+	INP 						//AC = Input
+	STA	CHAR					//CHAR=AC
+	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA 	CHAR
+	STA	ptr2ptr I					//*ptr2ptr=AC
+CharOut,	SKO						//repeat
+	BUN	CharOut					//until (FGO == 1) i.e. i/p available at device
+	OUT						//OUT->AC
+	ADD	BACK
+IF4,	SZA						//if(AC='BackSpace')
+	BUN	ELSE4
+THEN4,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	CLA						//AC=0
+	STA	ptr2ptr I					//*f_ptr=0
+	ISZ	f_ptr
+	ISZ	f_ptr
+	LDA	f_ptr I
+	STA	f_ptr 					//f_ptr=f_ptr.prev
+	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	CLA						//AC=0
+	STA	ptr2ptr I					//*f_ptr=0
+	BUN	Char_in
+ELSE4,	LDA	CHAR
+	ADD	EQL
+IF5,	SZA						//if(CHAR->'=')
+	BUN	ELSE5
+THEN5,	LDA	TRUE
+	STA	Z					//Z=TRUE
+	LDA	f_ptr I
+	BSA	in_ISOP
+	ISZ	f_ptr
+	LDA	NULL
+	STA	f_ptr I					//f_ptr.next=NULL
+	LDA	f_start
+	STA	f_ptr					//f_ptr=f_start
+	BUN	CHECK
+ELSE5,	LDA	CHAR
+	ADD	EXIT
+IF6,	SZA						//if(CHAR==EXIT)
+	BUN	ELSE6
+	BUN	END1
+ELSE6,	ISZ	f_ptr
+	LDA	f_ptr I	
+	STA	f_ptr					//f_ptr=f_ptr.next
+	BUN	Char_in
+
+//Check the formula
+CHECK,	LDA	DecOffset
+	STA	AsciiOffset				//AsciiOffset=DecOffset
+	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA	ptr2ptr I
+	STA	CHAR					//CHAR=*ptr2ptr
+	ADD	EQL
+IF7,	SZA						//*f_ptr->'='
+	BUN	ELSE7
+THEN7,	LDA	f_start
+	BSA	CALCUL						
+	STA	results					//results=CALCUL()
+	BUN	Output
+ELSE7,	LDA	CHAR
+	BSA	INP_NUM				
+	IF8,	SZA					//if (INP_NUM(CHAR)==0)
+		BUN	ELSE8
+	THEN8,	LDA	CHAR
+		BSA	INP_OP			
+		IF9,	SZA				//if(INP_OP(CHAR)==0)
+			BUN	ELSE11_2
+		THEN9,	LDA	Err1
+			BSA	Str_Out			//Str_Out("Wrong Input")
+			LDA	NewLine
+			OUT
+			BUN	RESET
+	ELSE8,	LDA	CHAR
+		ADD	AsciiOffset
+		STA	CHAR				//CHAR=CHAR+AsciiOffset				
+		LDA	f_start
+		CMA
+		INC
+		ADD	f_ptr				
+		IF10,	SZA				//if(f_ptr=f_start)
+			BUN	ELSE10
+			BUN	ELSE11_1
+		ELSE10,	ISZ	f_ptr
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.prev  
+			STA	t_ptr			//f_ptr.prev=t_ptr
+			LDA	f_ptr I
+			STA	ptr2ptr			//ptr2ptr=*f_ptr
+			LDA	ptr2ptr I
+			BSA	INP_OP		
+			IF11,	SZA			//if(INP_OP(*ptr2ptr)==0)
+				BUN	ELSE11
+			THEN11,	LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr I
+				STA	X		//X=*ptr2ptr
+				LDA	cur_base
+				STA	Y		//Y=cur_base
+				BSA	Multi_op		
+				ADD	CHAR
+				STA	CHAR		//CHAR=CHAR+Multi_op(X,Y)
+				STA	ptr2ptr I
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				STA	t2_ptr		//f_ptr.next=t2_ptr
+				ISZ	f_ptr
+				ISZ	f_ptr
+				LDA	t_ptr
+				STA	f_ptr I		//f_ptr.prev=t_ptr
+				LDA	t2_ptr
+				STA	f_ptr		//f_ptr=t2_ptr
+				ISZ	t_ptr
+				LDA	f_ptr
+				STA	t_ptr I		//t_ptr.next=f_ptr
+				BUN	CHECK
+			ELSE11,	ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+			ELSE11_1,LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	CHAR
+				STA	ptr2ptr I		//*ptr2ptr=CHAR
+				BUN	ELSE11_3
+			ELSE11_2,LDA	TRUE
+				STA	Z		//Z=TRUE
+				LDA	f_ptr I
+				BSA	in_ISOP
+			ELSE11_3,ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				BUN	CHECK		
+
+//Output Resulte
+Output,	STA	results
+	LDA	cur_base
+	CMA
+	INC
+	ADD	two
+IF12,	SZA						//if(cur_base=two)
+	BUN	IF13
+THEN12,	BUN	Out_res1
+IF13,	LDA	cur_base
+	CMA
+	INC
+	ADD	hex
+IF14,	SZA						//if(cur_base=hex)
+	BUN	ELSE14
+THEN14,	BUN	Out_res2
+ELSE14,	LDA	results
+IF15,	SNA						//if (results<0)
+ELSE15,	BUN	Out_res
+THEN15,	CMA
+	INC
+	STA	results					//-results=results
+	LDA	MINUS
+	CMA
+	INC
+	OUT						//OUT->'-'				
+
+//First case: Decimal method
+Out_res,	LDA	results
+	STA	X					//X=results
+	LDA	v_ptr I
+	STA	Y					//Y=*v_ptr
+	BSA	Div_op
+	STA	CHAR1					//CHAR1=Div_op(X,Y)
+IF16,	SZA						//if(CHAR1==0)
+	BUN	ELSE17
+THEN16,	ADD	FLAG
+IF17,	SZA						//if (Div_op(X,Y)&&FLAG==0)
+	BUN	ELSE17
+	BUN	THEN17
+ELSE17,	LDA	TRUE
+	STA	FLAG					//FLAG=TRUE
+	LDA	CHAR1
+	ADD	P_Ascii
+	OUT						//OUT->CHAR1+P_Ascii
+THEN17,	LDA	X
+	STA	results					//results=X
+	LDA	v_ptr
+	INC
+	STA	v_ptr					//v_ptr++	
+	LDA	v_ptr I
+IF18,	SNA						//if(*v_ptr<0)
+ELSE18,	BUN	Out_res
+THEN18,	BUN	END
+
+//Second case: Binary method
+Out_res1,LDA	results
+	STA	X					//X=results
+	LDA	v_ptr I
+	STA	Y					//Y=*v_ptr
+	BSA	Div_op1
+	STA	CHAR1					//CHAR1=Div_op(X,Y)
+IF19,	SZA						//if(CHAR1==0)
+	BUN	ELSE20
+	ADD	FLAG
+IF20,	SZA						//if (Div_op(X,Y)&&FLAG==0)
+	BUN	ELSE20
+	BUN	THEN20
+ELSE20,	LDA	TRUE
+	STA	FLAG					//FLAG=TRUE
+	LDA	CHAR1	
+	ADD	P_Ascii
+	OUT						//OUT->CHAR1+P_Ascii
+THEN20,	LDA	X
+	STA	results					//results=X
+	LDA	v_ptr
+	INC
+	STA	v_ptr					//v_ptr++	
+	LDA	v_ptr I
+IF21,	SNA						//if(*v_ptr<0)
+ELSE21,	BUN	Out_res1
+THEN21,	BUN	END
+
+//Third case: Binary method
+Out_res2,LDA	results
+	STA	X					//X=results
+	LDA	v_ptr I
+	STA	Y					//Y=*v_ptr
+	BSA	Div_op1
+	STA	CHAR1					//CHAR1=Div_op1(X,Y)
+IF22,	SZA						//if(CHAR1==0)
+	BUN	ELSE23
+	ADD	FLAG
+IF23,	SZA						//if (Div_op(X,Y)&&FLAG==0)
+	BUN	ELSE23
+	BUN	THEN23
+ELSE23,	LDA	TRUE
+	STA	FLAG					//FLAG=TRUE
+	LDA	CHAR1
+	ADD	nine
+	ADD	P_Ascii
+	IF24,	SPA					//if(nine+P_Ascii<CHAR1)
+		BUN	ELSE24
+	THEN24,	LDA	CHAR1	
+		ADD	P_HexOff
+		OUT					//OUT->CHAR1+P_HexOff
+		BUN	THEN23	
+	ELSE24,	LDA	CHAR1	
+		ADD	P_Ascii
+		OUT					//OUT->CHAR1+P_Ascii
+THEN23,	LDA	X
+	STA	results					//results=X
+	LDA	v_ptr
+	INC
+	STA	v_ptr					//v_ptr++	
+	LDA	v_ptr I
+IF25,	SNA						//if(*v_ptr<0)
+ELSE25,	BUN	Out_res2
+THEN25,	LDA	X
+	ADD	nine
+	ADD	P_Ascii
+	IF26,	SPA					//if(nine+P_Ascii<CHAR1)
+	ELSE26,	BUN	END
+	THEN26,	LDA	X
+		ADD	P_HexOff
+		OUT					//OUT->X+P_HexOff
+		LDA	NewLine
+		OUT					//OUT->NewLine
+		BUN	RESET
+//End of calculation and reset the linked list for the next input
+END,	LDA	X					
+	ADD	P_Ascii				
+	OUT						//OUT->X+P_Ascii
+	LDA	NewLine
+	OUT						//OUT->NewLine
+RESET,	LDA	f_start	
+	STA	f_ptr					//f_ptr=f_start
+	STA	t_ptr					//t_ptr=f_start
+	ISZ	f_ptr
+	LDA	f_ptr
+	INC
+	INC
+	STA	f_ptr I					//f_ptr.next=f_ptr+2			
+	ISZ	f_ptr
+	LDA	NULL
+	STA	f_ptr I					//f_ptr.prev=NULL
+	ISZ	f_ptr
+CLE_RU,	ISZ	f_ptr
+	LDA	f_ptr I
+IF27,	SZA						//if(f_ptr.next=NULL)
+	BUN	ELSE27
+THEN27,	LDA	f_ptr
+	INC
+	INC
+	STA	f_ptr I					//*f_ptr=f_ptr+2
+	ISZ	f_ptr
+	LDA	t_ptr
+	STA	f_ptr I					//f_ptr.prev=f_ptr
+	BSA	CLEAR
+	BUN	Input
+ELSE27,	LDA	f_ptr
+	INC
+	INC
+	STA	f_ptr I					//*f_ptr=f_ptr+2
+	ISZ	f_ptr
+	LDA	t_ptr
+	STA	f_ptr I					//f_ptr.prev=f_ptr
+	ISZ	f_ptr
+	LDA	f_ptr
+	ADD	neg_tree
+	STA	t_ptr					//f_ptr=t_ptr
+	BUN	CLE_RU
+END1,	LDA	Note3
+	BSA	Str_Out					//Str_Out("GoodBye!")
+	HLT
+
+//Clear all data
+CLEAR,	HEX	0
+	CLA
+	STA	results
+	STA	results2
+	STA	t_ptr
+	STA	t2_ptr
+	STA	t3_ptr
+	STA	t4_ptr
+	STA	t5_ptr
+	STA	t6_ptr
+	STA	t7_ptr
+	STA	t8_ptr
+	STA	t9_ptr
+	STA	t_bool
+	STA	t2_bool
+	STA	t3_bool
+	STA	t4_bool
+	STA	CHAR
+	STA	CHAR1
+	STA	X
+	STA	Y
+	STA	count	
+	STA	FLAG
+	LDA	v_start
+	STA	v_ptr
+	BUN	CLEAR I
+
+//Calculation Recurstion
+//First iteration: '('
+CALCUL,	HEX	0
+	STA	f_ptr
+WHILE,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	BSA	out_ISOP
+	CMA
+	INC
+	ADD	TRUE
+	SZA						//if (out_ISOP==TRUE)			
+	BUN 	ELSE30
+	LDA	ptr2ptr I	
+	ADD	EQL
+IF28,	SZA						//while(*f_ptr!='=')
+	BUN	ELSE29
+THEN28,	LDA	f_start
+	BSA	CALCUL2
+	BUN	CALCUL I
+ELSE29,	LDA	ptr2ptr I
+	ADD	LEFT
+	IF30,	SZA					//if (*f_ptr=='(')
+		BUN	ELSE30
+	THEN30,	LDA	ptr2ptr
+		STA	ptr2ptr3				//ptr2ptr3=ptr2ptr
+		LDA	f_ptr
+		STA	t_ptr				//(f_ptr=t_ptr)
+		BSA	CALCUL2
+		STA	ptr2ptr3 I				//ptr2ptr3=CALCUL()
+		ISZ	f_ptr
+		LDA	f_ptr I
+		STA	f_ptr				//f_ptr=f_ptr.next
+		STA	t9_ptr				//t9_ptr=f_ptr.next
+		ISZ	f_ptr	
+		ISZ	f_ptr
+		LDA	t_ptr
+		STA	f_ptr I				//f_ptr.prev=t_ptr
+		LDA	t9_ptr
+		STA	f_ptr				//f_ptr=t9_ptr
+		ISZ	t_ptr
+		LDA	f_ptr
+		STA	t_ptr I				//f_ptr.next=f_ptr
+		BUN	WHILE
+	ELSE30,	ISZ	f_ptr
+		LDA	f_ptr I		
+		STA	f_ptr				//f_ptr=f_ptr.next
+		BUN	WHILE				
+
+//Second iteration: '-' , ')'
+CALCUL2,	HEX	0
+	STA	f_ptr
+WHILE2,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	BSA	out_ISOP
+	CMA
+	INC
+	ADD	TRUE
+	SZA						//if (out_ISOP==TRUE)			
+	BUN 	ELSE33
+	LDA	ptr2ptr I	
+	ADD	EQL
+IF31,	SZA						//while(ptr2ptr!='=')
+	BUN	ELSE31
+THEN31,	LDA	f_start
+	BSA	CALCUL3
+	BUN	CALCUL2 I
+ELSE31,	LDA	ptr2ptr I	
+	ADD	RIGHT
+	IF32,	SZA					//if(*ptr2ptr==')')
+		BUN	ELSE32
+	THEN32,	LDA	t_ptr
+		BSA	CALCUL3
+		BUN	CALCUL2 I
+	ELSE32,	LDA	ptr2ptr I	
+		ADD	MINUS			
+		IF33,	SZA				//if(*ptr2ptr=='-')
+			BUN	ELSE33
+		THEN33,	LDA	f_ptr
+			CMA
+			INC
+			ADD	f_start
+			IF34,	SZA			//if(f_ptr==f_start)
+			BUN	ELSE34			
+			THEN34,	LDA	ptr2ptr I	
+				CMA
+				INC
+				ADD	LEFT
+				SZA			//if(*ptr2ptr=='(')
+				BUN	CASE1
+				BUN	IF13
+			ELSE34,	ISZ	f_ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.prev
+				LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr I	
+				BSA	INP_OP
+			IF35,	SZA			//if(INP_OP==0)
+				BUN	ELSE35
+			THEN35,	BUN	CASE2
+			ELSE35,	ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next					
+			CASE1,	LDA	f_ptr	
+				STA	t4_ptr		//t4_ptr=*f_ptr
+				LDA	t4_ptr I
+				STA	ptr2ptr2		//ptr2ptr=*f_ptr	
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr I		
+				CMA
+				INC
+				CME
+				STA	ptr2ptr2 I		//*t4_ptr=-*f_ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				STA	t5_ptr		//t5_ptr=f_ptr.next
+				ISZ	f_ptr
+				ISZ	f_ptr
+				LDA	t4_ptr
+				STA	f_ptr I		//f_ptr.prev=t4_ptr
+				ISZ	t4_ptr
+				LDA	t5_ptr
+				STA	t4_ptr I		//t4_ptr.next=t5_ptr
+				STA	f_ptr
+				LDA	f_ptr I
+				BUN	WHILE2
+			CASE2,	ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr
+				LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	PLUSE
+				CMA
+				INC
+				STA	ptr2ptr I		//*ptr2ptr=='+'
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr I	
+				CMA
+				INC
+				STA	ptr2ptr I		//*f_ptr=-*ptr2ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				BUN	WHILE2			
+		ELSE33,	ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			BUN	WHILE2
+	
+//Third iteration: '*' , '/' , ')'								
+CALCUL3,	HEX	0
+	STA	f_ptr
+WHILE3,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	BSA	out_ISOP
+	CMA
+	INC
+	ADD	TRUE
+	SZA						//if (out_ISOP==TRUE)			
+	BUN 	ELSE39
+	LDA	ptr2ptr I	
+	ADD	EQL
+IF36,	SZA						//while(ptr2ptr!='=')
+	BUN	ELSE36
+THEN36,	LDA	f_start
+	BSA	CALCUL4
+	BUN	CALCUL3 I
+ELSE36,	LDA	ptr2ptr I	
+	ADD	RIGHT
+	IF37,	SZA					//if(*ptr2ptr==')')
+		BUN	ELSE37
+	THEN37,	LDA	t_ptr
+		BSA	CALCUL4
+		BUN	CALCUL3 I
+	ELSE37,	LDA	ptr2ptr I	
+		ADD	MULTI	
+		IF38,	SZA				//if(*ptr2ptr=="*")
+			BUN	ELSE38	
+		THEN38,	ISZ	f_ptr
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.prev
+			STA	t2_ptr			//t2_ptr=f_ptr.prev
+			LDA	f_ptr I
+			STA	ptr2ptr			//ptr2ptr=*f_ptr
+			LDA	ptr2ptr I
+			STA	X			//X=*ptr2ptr
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			LDA	f_ptr I
+			STA	ptr2ptr2			//ptr2ptr=*f_ptr
+			LDA	ptr2ptr2 I
+			STA	Y			//Y=*ptr2ptr
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			STA	t3_ptr			//t3_ptr=f_ptr.next
+			BSA	Multi_op
+			STA	ptr2ptr I			//*ptr2ptr=Multi_op()
+			ISZ	f_ptr
+			ISZ	f_ptr
+			LDA	t2_ptr
+			STA	f_ptr I			//f_ptr.prev=t2_ptr
+			LDA	t3_ptr
+			STA	f_ptr
+			ISZ	t2_ptr
+			LDA	f_ptr
+			STA	t2_ptr I			//t2_ptr.next=f_ptr		
+			BUN	WHILE3
+		ELSE38,	LDA	ptr2ptr I
+			ADD	DIV	
+			IF39,	SZA			//if(*f_ptr=="*")
+				BUN	ELSE39
+			THEN39,	ISZ	f_ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.prev
+				STA	t2_ptr		//t2_ptr=f_ptr.prev
+				LDA	f_ptr I
+				STA	ptr2ptr		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr I
+				STA	X		//X=*ptr2ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				LDA	f_ptr I
+				STA	ptr2ptr2		//ptr2ptr=*f_ptr
+				LDA	ptr2ptr2 I
+				STA	Y		//Y=*ptr2ptr
+				ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				STA	t3_ptr		//t3_ptr=f_ptr.next
+				BSA	Div_op
+				STA	ptr2ptr I		//*ptr2ptr=Div_op()
+				ISZ	f_ptr
+				ISZ	f_ptr
+				LDA	t2_ptr
+				STA	f_ptr I		//f_ptr.prev=t2_ptr
+				LDA	t3_ptr
+				STA	f_ptr
+				ISZ	t2_ptr
+				LDA	f_ptr
+				STA	t2_ptr I		//t2_ptr.next=f_ptr		
+				BUN	WHILE3
+			ELSE39,	ISZ	f_ptr
+				LDA	f_ptr I
+				STA	f_ptr		//f_ptr=f_ptr.next
+				BUN	WHILE3				
+
+//Forth iteration: '*' , '/' , ')'								
+CALCUL4, HEX	0
+	STA	f_ptr
+	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA	ptr2ptr I
+	ADD	LEFT
+IF40,	SZA						//if(*ptr2ptr=='(')
+	BUN	ELSE40
+THEN40,	ISZ	f_ptr
+	LDA	f_ptr I
+	STA	f_ptr
+	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA	ptr2ptr I
+	STA	results					//results=*ptr2ptr	
+	BUN	WHILE4
+ELSE40,	LDA	f_ptr I	
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA	ptr2ptr I
+	STA	results					//results=*ptr2ptr
+	ISZ	f_ptr
+	LDA	f_ptr I
+	STA	f_ptr					//f_ptr=f_ptr.next
+WHILE4,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	BSA	out_ISOP
+	CMA
+	INC
+	ADD	TRUE
+	SZA						//if (out_ISOP==TRUE)			
+	BUN 	ELSE43
+	LDA	ptr2ptr I
+	ADD	EQL
+IF41,	SZA						//if(*ptr2ptr->'=')
+	BUN	ELSE41
+THEN41,	LDA	results
+	BUN	CALCUL4 I
+ELSE41,	LDA	f_ptr I
+	STA	ptr2ptr					//ptr2ptr=*f_ptr
+	LDA	ptr2ptr I
+	ADD	RIGHT
+	IF42,	SZA					//if(*ptr2ptr==')')
+		BUN	ELSE42
+	THEN42,	LDA	results
+		BUN	CALCUL4 I
+	ELSE42,	LDA	ptr2ptr I
+		ADD	PLUSE
+		IF43,	SZA				//if(*ptr2ptr=='+')
+			BUN	ELSE43
+		THEN43,	ISZ	f_ptr
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.prev
+			STA	t7_ptr			//t7_ptr=f_ptr.prev
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			LDA	f_ptr I
+			STA	ptr2ptr			//ptr2ptr=*f_ptr
+			LDA	ptr2ptr I
+			STA	X			//X=*ptr2ptr
+			ISZ	f_ptr
+			LDA 	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			STA	t8_ptr			//t8_ptr=f_ptr.next
+			LDA	results
+			STA	Y			//Y=results
+			BSA	Add_op
+			STA	results			//results=Add_op()
+			STA	ptr2ptr I			//*t7_ptr=Add_op()
+			ISZ	f_ptr
+			ISZ	f_ptr
+			LDA	t7_ptr
+			STA	f_ptr I			//f_ptr.prev=t7_ptr
+			LDA	t8_ptr
+			STA	f_ptr
+			ISZ	t7_ptr
+			LDA	f_ptr
+			STA	t7_ptr I			//t7_ptr.next=f_ptr	
+			BUN 	WHILE4
+		ELSE43,	ISZ	f_ptr
+			LDA	f_ptr I
+			STA	f_ptr			//f_ptr=f_ptr.next
+			BUN	WHILE4									
+//Add Function
+Add_op,	HEX	0
+	LDA	Y
+	ADD	X
+	STA	T
+	LDA	Y
+	SNA
+	BUN	ELSE63
+	CME
+ELSE63,	LDA	X
+	SNA
+	BUN	DO4
+	CME
+DO4,	LDA	T
+	BSA	overflow
+	LDA	T
+	BUN	Add_op I
+	
+
+//Multipal Function
+Multi_op,	HEX	0
+	CLA
+	STA	t_bool					//t_bool=0
+	STA	t2_bool					//t2_bool=0
+	STA	k					//k=0
+	LDA	X
+IF44,	SNA						//if(x<0)
+	BUN	ELSE44
+THEN44,	LDA	TRUE
+	STA	t_bool					//t_bool=TRUE
+	LDA	X
+	CMA
+	INC
+	STA	X					//X=-X
+ELSE44,	LDA	Y
+	IF45,	SNA					//if(y<0)
+		BUN	MULT
+	THEN45,	LDA	TRUE
+		STA	t2_bool				//t2_bool=TRUE
+		LDA	Y
+		CMA
+		INC
+		STA	Y				//Y=-Y
+	MULT,	CLA	
+		STA	results2				//results2=0	
+		LDA	Y
+		CMA
+		INC
+		STA	Y				//Y=-Y
+	FOR1,	LDA	k
+		ADD	Y
+		SZA					//if (k=Y)
+		BUN	DO1
+		BUN	OD1	
+	DO1,	LDA	results2
+		ADD	X
+		STA	results2				//results2=results2+X
+		CLE
+		LDA	results2
+		BSA	overflow
+		LDA	k
+		INC
+		STA	k				//k++
+		BUN	FOR1
+	OD1,	LDA	t_bool
+		CMA
+		INC
+		ADD	t2_bool
+IF46,	SZA						//if(t_bool=t2_bool)
+	BUN	ELSE46
+	BUN	THEN46
+ELSE46,	LDA	results2
+	CMA
+	INC
+	STA	results2					//results2=-results2
+THEN46,	LDA	results2
+
+	LDA	results2
+	BUN	Multi_op I
+
+//Division Functions
+//First case: Binary&Hexadecimal method
+Div_op1,	HEX	0
+	LDA	Y
+	CMA
+	INC
+	STA	Y					//Y=-Y
+	CLA
+	STA	results2					//results2=0	
+WHILE1_1,LDA	X
+	ADD	Y
+	SZE						//if(X<Y)
+	BUN	DO2_1
+	BUN	OD2_1
+DO2_1,	STA	X
+	LDA	results2
+	INC
+	STA	results2					//results2
+	BUN	WHILE1_1
+OD2_1,	LDA	results2
+	LDA	results2
+	BUN	Div_op1 I
+
+//Second case:Decimal method
+Div_op,	HEX	0
+	LDA	X
+	SZA
+	BUN	DO3
+	LDA	Err2
+	BSA	Str_Out					//Str_Out("Can't Calculate")
+	LDA	NewLine
+	OUT
+	BUN	RESET
+DO3,	CLA
+	STA	t_bool					//t_bool=0
+	STA	t2_bool					//t2_bool=0
+	STA	k					//k=0
+	LDA	X
+IF47,	SNA						//if(x<0)
+	BUN	ELSE47
+THEN47,	LDA	TRUE
+	STA	t_bool					//t_bool=TRUE
+	LDA	X
+	CMA
+	INC
+	STA	X					//X=-X
+ELSE47,	LDA	Y
+	IF48,	SNA					//if(y<0)
+		BUN	DIV1
+	THEN48,	LDA	TRUE
+		STA	t2_bool				//t2_bool=TRUE
+		LDA	Y
+		CMA
+		INC
+		STA	Y				//Y=-Y
+DIV1,	LDA	Y
+	CMA
+	INC
+	STA	Y					//Y=-Y
+	CLA
+	STA	results2					//results2=0	
+WHILE1,	LDA	X
+	ADD	Y
+	SZE						//if(X<Y)
+	BUN	DO2
+	BUN	OD2
+DO2,	STA	X
+	LDA	results2
+	INC
+	STA	results2					//results2
+	BUN	WHILE1	
+OD2,	LDA	t_bool
+	CMA
+	INC
+	ADD	t2_bool
+IF49,	SZA						//if(t_bool=t2_bool)
+	BUN	ELSE49
+	BUN	THEN49
+ELSE49,	LDA	results2
+	CMA
+	INC
+	STA	results2					//results2=-results2
+THEN49,	LDA	results2
+	LDA	results2
+	BUN	Div_op I
+
+	
+//Check input character-numbers
+INP_NUM,HEX	0
+	STA	CHAR1
+	LDA	cur_base
+	CMA
+	INC
+	ADD	two
+IF50,	SZA						//if(cur_base==two)	
+	BUN	ELSE51
+THEN51,	LDA	One
+	STA	Range					//Range=one
+	BUN	is_num
+ELSE51,	LDA	cur_base
+	CMA
+	INC
+	ADD	ten
+	IF52,	SZA					//if(cur_base==ten)	
+		BUN	ELSE52
+	THEN52,	LDA	nine
+		STA	Range
+		BUN	is_num
+	ELSE52,	LDA	cur_base
+		CMA
+		INC
+		ADD	hex
+		IF53,	SZA				//if(cur_base==hex)
+			BUN	ELSE53
+		THEN53,	LDA	F
+			STA	Range
+			BUN	is_hex
+		ELSE53,	LDA	Err1
+			BSA	Str_out
+			BUN	END1			
+is_hex,	LDA	CHAR1
+	ADD	A
+IF54,	SNA						// if (char<A)
+	BUN	ELSE54		
+THEN54,	BUN	is_num
+ELSE54,	LDA	CHAR1
+	ADD	F
+	IF55,	SPA					//if (char>F)
+		BUN	ELSE55	
+	THEN55,	BUN 	is_num
+	ELSE55,	LDA	HexOffset
+		STA	AsciiOffset			//AsciiOffset=HexOffset
+		LDA	TRUE	
+		BUN	INP_NUM I
+is_num,	LDA	CHAR1
+	ADD	Zero
+IF56,	SNA						// if (char<zero)
+	BUN	ELSE56		
+THEN56,	LDA	FALSE
+	BUN	INP_NUM I			
+ELSE56,	LDA	CHAR1
+	ADD	Range
+	IF57,	SPA					//if(char>nine)
+		BUN	ELSE57	
+	THEN57,	LDA	FALSE
+		BUN 	INP_NUM I
+	ELSE57,	LDA	TRUE
+		BUN	INP_NUM I
+
+
+//Check input character-operator
+INP_OP,	HEX	0
+	STA	CHAR1
+	CLA
+	STA	i					//i=0
+	LDA	OP_start
+	STA	OP_ptr
+FOR,	LDA	i					//for (i=0;i<4;i++)
+	ADD	CountOp
+	SZA
+	BUN	DO
+	BUN	OD		
+DO,	LDA	CHAR1
+	ADD	OP_ptr I
+IF58,	SZA						//if char=='+' / '-' / '*' / '/'
+	BUN	ELSE58
+THEN58,	LDA	TRUE
+	BUN	INP_OP I
+ELSE58,	LDA	i
+	INC
+	STA	i
+	LDA	Op_ptr
+	INC
+	STA	OP_ptr
+	BUN	FOR
+OD,	LDA	FALSE
+	BUN	INP_OP I
+	
+//String Output
+Str_Out,	HEX	0
+	STA	str_ptr
+WHILE6,	LDA	str_ptr I
+	SNA						// if str_ptr in on the last character in the array
+	BUN	Char_out
+	BUN	Str_Out I
+Char_out,SKO 						// repeat
+	BUN 	Char_out					// until (FGO == 1) i.e. device is ready for o/p
+	OUT 						// Output =  AC
+	LDA	str_ptr
+	INC
+	STA	str_ptr					// str_ptr++	
+	BUN	WHILE6
+
+//out isop data
+out_ISOP,HEX	0
+	INC
+	STA	ptr2ptr4
+	LDA	ptr2ptr4 I
+	BUN	out_ISOP I
+
+//in isop data
+in_ISOP,HEX	0
+	INC
+	STA	ptr2ptr4
+	LDA	Z
+	STA	ptr2ptr4 I
+	BUN	in_ISOP I
+
+//Check OverFlow
+overflow,	HEX	0
+	STA	T
+IF60,	SZE						// if(E==0)
+	BUN	ELSE60
+	BUN	THEN60
+ELSE60,	LDA	TRUE
+	STA	t3_bool					//t_bool==TRUE
+THEN60,	CLA
+	CLE
+	LDA	T
+	CIL
+IF61,	SZE
+	BUN	ELSE61
+	BUN	THEN61
+ELSE61,	LDA	TRUE
+	STA	t4_bool					//t2_bool==TRUE
+THEN61,	LDA	t3_bool
+	CMA
+	INC
+	ADD	t4_bool
+IF62,	SZA						//if(t_bool==t2_bool)
+	BUN	ELSE62
+THEN62,	CLE			
+	BUN	overflow I
+ELSE62,	LDA	Err3
+	BSA	Str_Out					//Str_Out("Overflow occurred")
+	BUN 	RESET
+
+
+//DATA
+//Main Data
+results,	DEC	0					// the results of the formula
+t_ptr,	HEX	0
+t2_ptr,	HEX	0
+t3_ptr,	HEX	0
+t4_ptr,	HEX	0
+t5_ptr,	HEX	0
+t6_ptr,	HEX	0
+t7_ptr,	HEX	0
+t8_ptr,	HEX	0
+t9_ptr,	HEX	0
+ptr2ptr,	HEX	0
+ptr2ptr2,	HEX	0
+ptr2ptr3,	HEX	0
+ptr2ptr4,	HEX	0
+t_bool,	HEX	0
+t2_bool,	HEX	0
+t3_bool,	HEX	0
+t4_bool,	HEX	0
+T,	HEX	0
+CHAR,	HEX	0
+CHAR2,	HEX	0	
+AsciiOffset,HEX	-30
+P_Ascii,	HEX	30
+NULL,	HEX	0
+BACK,	HEX	-8
+NewLine,	HEX	D
+EXIT,	HEX	-78
+neg_tree,	HEX	-3
+FLAG,	HEX	0
+Range,	HEX	0
+
+//Method choose
+h,	HEX	-68
+d,	HEX	-64
+b,	HEX	-62
+
+//Calculation Base
+cur_base,DEC	0
+two,	DEC	2
+ten,	DEC	10	
+hex,	DEC	16
+
+//Hex verables
+HexOffset,HEX	-37
+P_HexOff,HEX	37	
+DecOffset,HEX	-30
+
+//Boolean
+TRUE,	HEX	FFFF
+FALSE,	HEX	0
+
+//Operators Function Data
+X,	DEC	0
+Y,	DEC	0
+Z,	DEC	0
+k,	DEC	0
+count,	DEC	0
+results2,	DEC	0
+CHAR1,	DEC	0
+
+//Check input character Data
+//Decimal
+Zero,	HEX	-30
+Nine,	HEX	-39
+//Binary
+One,	HEX	-31
+//HexaDecimal
+A,	HEX	-41
+F,	HEX	-46
+//Local Verables
+i,	DEC	0
+CountOp,	DEC	-6
+
+//Array Formula
+f_start,	HEX	500
+f_ptr,	HEX	0
+	ORG	500
+
+
+F_ARR,	HEX	800					//contain the formula
+	HEX	503	
+	HEX	0
+
+	HEX	802
+	HEX	506
+	HEX	500
+	
+	HEX	804
+	HEX	509
+	HEX	503
+	
+	HEX	806
+	HEX	50C
+	HEX	506
+	
+	HEX	808
+	HEX	50F
+	HEX	509
+
+	HEX	80A
+	HEX	512
+	HEX	50C
+
+	HEX	80C
+	HEX	515
+	HEX	50F
+
+	HEX	80E
+	HEX	518
+	HEX	512
+	
+	HEX	811
+	HEX	51B
+	HEX	515
+
+	HEX	813
+	HEX	51E
+	HEX	518
+
+	HEX	815
+	HEX	521
+	HEX	51B
+
+	HEX	817
+	HEX	524
+	HEX	51E
+
+	HEX	819
+	HEX	527
+	HEX	521
+
+	HEX	81B
+	HEX	52A
+	HEX	524
+
+	HEX	81D
+	HEX	0
+	HEX	527
+
+//Operators Variable
+OP_start,	HEX	550
+OP_ptr,	HEX	0
+	ORG	550
+PLUSE,	HEX	-2B						// '+' operator
+MINUS,	HEX	-2D						// '-' operator
+MULTI,	HEX	-2A						// '*' operator
+DIV,	HEX	-2F						// '/' operator
+LEFT,	HEX	-28						// '(' operator
+RIGHT,	HEX	-29						// ')' operator
+EQL,	HEX	-3D						// '=' operator
+
+
+v_start,	HEX	0
+v_ptr,	HEX	0
+//Output Array values (Decimal)
+d_start,	HEX	600
+	ORG	600
+ValueD,	DEC	10000
+	DEC	1000
+	DEC	100
+	DEC	10
+	DEC	-999
+//Output Array values (Binary)
+b_start,	HEX	610
+	ORG	610
+ValueB,	DEC	32768
+	DEC	16384
+	DEC	8192	
+	DEC	4096
+	DEC	2048
+	DEC	1024
+	DEC	512
+	DEC	256
+	DEC	128
+	DEC	64
+	DEC	32
+	DEC	16
+	DEC	8
+	DEC	4
+	DEC	2
+	DEC	-999
+//Output Array values (Hexadecimal)
+h_start,	HEX	650
+	ORG	650
+ValueH,	DEC	4096
+	DEC	256
+	DEC	16
+	DEC	-999
+
+
+//Strings data
+str_ptr,	HEX	0
+//Error1 Data	"Wrong input"
+Err1,	HEX	660
+	ORG	660
+Err1_Arr,	HEX	D
+	HEX	57
+	HEX	72
+	HEX	6F
+	HEX	6E
+	HEX	67
+	HEX	20
+	HEX	49
+	HEX	6E
+	HEX	70
+	HEX	75
+	HEX	74
+	HEX	-999
+
+//Error2 Data	"Can't Calculate"
+Err2,	HEX	66F
+	ORG	66F
+Err2_Arr,	HEX	D
+	HEX	43
+	HEX	61
+	HEX	6E
+	HEX	27
+	HEX	74
+	HEX	20
+	HEX	63
+	HEX	61
+	HEX	63
+	HEX	75
+	HEX	6C
+	HEX	61
+	HEX	74
+	HEX	65
+	HEX	-999
+
+//Error3 data	"Overflow occurred"
+Err3,	HEX	681
+	ORG	681
+Err3_Arr,	HEX	D
+	HEX	4F
+	HEX	76
+	HEX	65
+	HEX	72
+	HEX	66
+	HEX	6C
+	HEX	6F
+	HEX	77
+	HEX	20
+	HEX	6F
+	HEX	63
+	HEX	63
+	HEX	75
+	HEX	72
+	HEX	72
+	HEX	65
+	HEX	64
+	HEX	D
+	HEX	-999
+	
+//Notes
+Note1,	HEX	700
+	ORG	700
+Note1_Arr,HEX	45
+	HEX	6E
+	HEX	74
+	HEX	65
+	HEX	72
+	HEX	20
+	HEX	69
+	HEX	6E
+	HEX	70
+	HEX	75
+	HEX	74
+	HEX	20
+	HEX	6D
+	HEX	65
+	HEX	74
+	HEX	68
+	HEX	6F
+	HEX	64
+	HEX	5B
+	HEX	62
+	HEX	5C
+	HEX	68
+	HEX	5C
+	HEX	64
+	HEX	5D
+	HEX	3A
+	HEX	-999
+//		"AdvancedCalculator0.1.3Ver ©DorMalka"
+Note2,	HEX	740
+	ORG	740
+Note2_Arr,HEX	41
+	HEX	64
+	HEX	76
+	HEX	61
+	HEX	6E
+	HEX	63
+	HEX	65
+	HEX	64
+	HEX	43
+	HEX	61
+	HEX	6C
+	HEX	63
+	HEX	75
+	HEX	6C
+	HEX	61
+	HEX	74
+	HEX	6F
+	HEX	72
+	HEX	30
+	HEX	2E
+	HEX	31
+	HEX	2E
+	HEX	33
+	HEX	56
+	HEX	65
+	HEX	72
+	HEX	20
+	HEX	A9
+	HEX	44
+	HEX	6F
+	HEX	72
+	HEX	4D
+	HEX	61
+	HEX	6C
+	HEX	6B	
+	HEX	61
+	HEX	D
+	HEX	-999
+
+Note3,	HEX	780
+	ORG	780
+Note3_Arr,HEX	D
+	HEX	47
+	HEX	6F
+	HEX	6F
+	HEX	64
+	HEX	42
+	HEX	79
+	HEX	65
+	HEX	21
+	HEX	-999
+
+
+//Linked List Data Stucts
+	ORG	800
+DATA1,	HEX	0
+	HEX	0
+DATA2,	HEX	0
+	HEX	0
+DATA3,	HEX	0
+	HEX	0
+DATA4,	HEX	0
+	HEX	0
+DATA5,	HEX	0
+	HEX	0
+DATA6,	HEX	0
+	HEX	0
+DATA7,	HEX	0
+	HEX	0
+DATA8,	HEX	0
+	HEX	0
+DATA9,	HEX	0
+	HEX	0
+DATA10,	HEX	0
+	HEX	0
+DATA11,	HEX	0
+	HEX	0
+DATA12,	HEX	0
+	HEX	0
+DATA13,	HEX	0
+	HEX	0
+DATA14,	HEX	0
+	HEX	0
+DATA15,	HEX	0
+	HEX	0
